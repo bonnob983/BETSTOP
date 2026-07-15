@@ -191,6 +191,12 @@ class MainActivity : FlutterActivity() {
         com.example.betstop_kenya.dnsblock.DnsVpnService.onSustainedFailureListener = null
         timeoutRunnable?.let { timeoutHandler.removeCallbacks(it) }
         timeoutRunnable = null
+        if (success) {
+            getSharedPreferences("betstop_vpn", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("vpn_setup_complete", true)
+                .apply()
+        }
         vpnPermissionResult?.success(mapOf(
             "success" to success,
             "error" to error
