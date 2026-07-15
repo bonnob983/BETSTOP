@@ -1,0 +1,260 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:betstop_kenya/services/api_service.dart';
+import 'package:betstop_kenya/screens/dashboard_screen.dart';
+import 'package:betstop_kenya/screens/permission_setup_screen.dart';
+
+class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _storage = const FlutterSecureStorage();
+  final _apiService = ApiService();
+
+  int _currentStep = 0;
+
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  final _guardianNameController = TextEditingController();
+  final _guardianPhoneController = TextEditingController();
+
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
+
+  final _letterController = TextEditingController();
+
+  int _coolingHours = 24;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _guardianNameController.dispose();
+    _guardianPhoneController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
+    _letterController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _requestSmsPermission() async {
+    final status = await Permission.sms.request();
+
+    if (status.isGranted) {
+      _submitRegistration();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('SMS permission denied'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitRegistration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _apiService.register(
+        phone: _phoneController.text,
+        name: _nameController.text,
+        guardianName: _guardianNameController.text,
+        guardianPhone: _guardianPhoneController.text,
+        guardianPin: _pinController.text,
+        coolingHours: _coolingHours,
+        letterToSelf: _letterController.text,
+      );
+
+      await _storage.write(key: 'jwt_token', value: result['token']);
+      await _storage.write(key: 'user_id', value: result['user_id']);
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const PermissionSetupScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _nextStep() {
+    if (_currentStep < 3) {
+      setState(() => _currentStep++);
+    } else {
+      _showPermissionDialog();
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permission Required'),
+        content: const Text(
+          'BetStop needs SMS permission to function properly.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _requestSmsPermission();
+            },
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                const Text(
+                  'BetStop',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00C853),
+                  ),
+                ),
+                const Text('Take back control'),
+
+                const SizedBox(height: 30),
+
+                Expanded(child: _buildStep()),
+
+                Row(
+                  children: [
+                    if (_currentStep > 0)
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => setState(() => _currentStep--),
+                          child: const Text('Back'),
+                        ),
+                      ),
+                    if (_currentStep > 0) const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _nextStep,
+                        child: _isLoading
+                            ? const CircularProgressIndicator()
+                            : Text(_currentStep == 3 ? 'Complete' : 'Next'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep() {
+    switch (_currentStep) {
+      case 0:
+        return _step1();
+      case 1:
+        return _step2();
+      case 2:
+        return _step3();
+      case 3:
+        return _step4();
+      default:
+        return const SizedBox();
+    }
+  }
+
+  Widget _step1() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(labelText: 'Name'),
+        ),
+        TextFormField(
+          controller: _phoneController,
+          decoration: const InputDecoration(labelText: 'Phone'),
+        ),
+      ],
+    );
+  }
+
+  Widget _step2() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _guardianNameController,
+          decoration: const InputDecoration(labelText: 'Guardian Name'),
+        ),
+        TextFormField(
+          controller: _guardianPhoneController,
+          decoration: const InputDecoration(labelText: 'Guardian Phone'),
+        ),
+      ],
+    );
+  }
+
+  Widget _step3() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _pinController,
+          decoration: const InputDecoration(labelText: 'PIN'),
+        ),
+        TextFormField(
+          controller: _confirmPinController,
+          decoration: const InputDecoration(labelText: 'Confirm PIN'),
+        ),
+      ],
+    );
+  }
+
+  Widget _step4() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _letterController,
+          decoration: const InputDecoration(labelText: 'Letter'),
+          maxLines: 5,
+        ),
+      ],
+    );
+  }
+}
