@@ -48,8 +48,20 @@ const authenticateToken = (req, res, next) => {
 // Helper function to send SMS to guardian
 const sendGuardianSMS = async (guardianPhone, message) => {
   try {
+    // Normalize phone number to E.164 format (+254XXXXXXXXX)
+    let normalizedPhone = guardianPhone;
+    if (!normalizedPhone.startsWith('+')) {
+      if (normalizedPhone.startsWith('0')) {
+        // Local format: 0769174601 -> +254769174601
+        normalizedPhone = '+254' + normalizedPhone.substring(1);
+      } else {
+        // Already has country code but no +: 254769174601 -> +254769174601
+        normalizedPhone = '+' + normalizedPhone;
+      }
+    }
+
     const options = {
-      to: [guardianPhone],
+      to: [normalizedPhone],
       message: message,
       from: 'BetStop' // You may need to register this sender ID
     };
