@@ -66,6 +66,11 @@ const sendGuardianSMS = async (guardianPhone, message) => {
       from: 'BetStop' // You may need to register this sender ID
     };
 
+    // Debug: log exact values being sent to AT
+    console.log('SMS DEBUG - to value:', JSON.stringify(normalizedPhone));
+    console.log('SMS DEBUG - to type:', Array.isArray([normalizedPhone]) ? 'array' : typeof [normalizedPhone]);
+    console.log('SMS DEBUG - options.to:', JSON.stringify(options.to));
+
     // Use sandbox mode in development
     if (process.env.NODE_ENV === 'development') {
       console.log('[SMS Sandbox] Would send to:', guardianPhone, 'Message:', message);
