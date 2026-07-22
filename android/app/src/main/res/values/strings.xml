@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_admin_label">BetStop Kenya Protection</string>
+    <string name="device_admin_description">Prevents uninstallation of BetStop Kenya during your commitment period to help you stay accountable.</string>
+</resources>

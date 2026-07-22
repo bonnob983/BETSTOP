@@ -17,6 +17,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   another_telephony: ^0.4.0
   usage_stats: ^2.0.1
+  timezone: ^0.9.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

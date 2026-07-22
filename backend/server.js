@@ -292,6 +292,148 @@ app.post('/api/detections/extension', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/device-admin/deactivate
+app.post('/api/device-admin/deactivate', authenticateToken, async (req, res) => {
+  try {
+    // Get user's active commitment
+    const { data: commitment } = await supabase
+      .from('commitments')
+      .select('*')
+      .eq('user_id', req.user.user_id)
+      .eq('is_active', true)
+      .single();
+
+    if (!commitment) {
+      return res.status(400).json({ error: 'No active commitment found' });
+    }
+
+    // Check if there's already a pending deactivation request
+    const { data: existingRequest } = await supabase
+      .from('deactivation_requests')
+      .select('*')
+      .eq('user_id', req.user.user_id)
+      .eq('status', 'pending')
+      .single();
+
+    if (existingRequest) {
+      return res.json({
+        already_requested: true,
+        requested_at: existingRequest.requested_at,
+        commitment_end_date: existingRequest.commitment_end_date
+      });
+    }
+
+    // Create deactivation request
+    const { data: deactivationRequest, error: deactivationError } = await supabase
+      .from('deactivation_requests')
+      .insert({
+        user_id: req.user.user_id,
+        commitment_end_date: commitment.commitment_end,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (deactivationError) throw deactivationError;
+
+    res.json({
+      success: true,
+      requested_at: deactivationRequest.requested_at,
+      commitment_end_date: deactivationRequest.commitment_end_date,
+      message: 'Deactivation request logged. You can remove BetStop after 24 hours.'
+    });
+  } catch (error) {
+    console.error('Deactivation request error:', error);
+    res.status(500).json({ error: 'Failed to log deactivation request', details: error.message });
+  }
+});
+
+// GET /api/device-admin/status
+app.get('/api/device-admin/status', authenticateToken, async (req, res) => {
+  try {
+    // Get latest deactivation request
+    const { data: deactivationRequest } = await supabase
+      .from('deactivation_requests')
+      .select('*')
+      .eq('user_id', req.user.user_id)
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!deactivationRequest) {
+      return res.json({
+        has_pending_request: false,
+        can_remove: false
+      });
+    }
+
+    // Check if 24 hours have passed
+    const now = new Date();
+    const requestedAt = new Date(deactivationRequest.requested_at);
+    const hoursPassed = (now - requestedAt) / (1000 * 60 * 60);
+    const canRemove = hoursPassed >= 24;
+
+    res.json({
+      has_pending_request: true,
+      requested_at: deactivationRequest.requested_at,
+      commitment_end_date: deactivationRequest.commitment_end_date,
+      hours_passed: hoursPassed,
+      can_remove: canRemove
+    });
+  } catch (error) {
+    console.error('Device admin status error:', error);
+    res.status(500).json({ error: 'Failed to check status', details: error.message });
+  }
+});
+
+// POST /api/device-admin/confirm
+app.post('/api/device-admin/confirm', authenticateToken, async (req, res) => {
+  try {
+    // Get latest pending deactivation request
+    const { data: deactivationRequest } = await supabase
+      .from('deactivation_requests')
+      .select('*')
+      .eq('user_id', req.user.user_id)
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!deactivationRequest) {
+      return res.status(400).json({ error: 'No pending deactivation request found' });
+    }
+
+    // Verify 24 hours have passed
+    const now = new Date();
+    const requestedAt = new Date(deactivationRequest.requested_at);
+    const hoursPassed = (now - requestedAt) / (1000 * 60 * 60);
+
+    if (hoursPassed < 24) {
+      return res.status(400).json({
+        error: '24 hours have not passed yet',
+        hours_remaining: 24 - hoursPassed
+      });
+    }
+
+    // Update request status to confirmed
+    const { error: updateError } = await supabase
+      .from('deactivation_requests')
+      .update({ status: 'confirmed' })
+      .eq('id', deactivationRequest.id);
+
+    if (updateError) throw updateError;
+
+    res.json({
+      success: true,
+      message: 'Deactivation confirmed. You can now remove BetStop from device admin settings.'
+    });
+  } catch (error) {
+    console.error('Device admin confirm error:', error);
+    res.status(500).json({ error: 'Failed to confirm deactivation', details: error.message });
+  }
+});
+
 // GET /api/user/dashboard
 app.get('/api/user/dashboard', authenticateToken, async (req, res) => {
   try {

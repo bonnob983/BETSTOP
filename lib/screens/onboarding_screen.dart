@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:betstop_kenya/services/api_service.dart';
+import 'package:betstop_kenya/services/device_admin_service.dart';
 import 'package:betstop_kenya/screens/dashboard_screen.dart';
 import 'package:betstop_kenya/screens/permission_setup_screen.dart';
 
@@ -16,6 +17,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _storage = const FlutterSecureStorage();
   final _apiService = ApiService();
+  final _deviceAdminService = DeviceAdminService();
 
   int _currentStep = 0;
 
@@ -111,9 +113,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
+        title: const Text('Permissions Required'),
         content: const Text(
-          'BetStop needs SMS permission to function properly.',
+          'BetStop needs SMS and device admin permissions to function properly and prevent uninstallation during your commitment.',
         ),
         actions: [
           TextButton(
@@ -123,13 +125,59 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _requestSmsPermission();
+              _requestPermissions();
             },
             child: const Text('Allow'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _requestPermissions() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Request SMS permission
+      final smsStatus = await Permission.sms.request();
+      if (!smsStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('SMS permission denied')),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Request device admin permission
+      final adminGranted = await _deviceAdminService.requestAdminPermission();
+      if (!adminGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Device admin permission denied')),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Start deactivation listener
+      _deviceAdminService.startDeactivationListener();
+
+      // Submit registration
+      await _submitRegistration();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Permission request failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

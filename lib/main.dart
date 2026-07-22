@@ -3,10 +3,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:betstop_kenya/screens/onboarding_screen.dart';
 import 'package:betstop_kenya/screens/dashboard_screen.dart';
+import 'package:betstop_kenya/screens/deactivation_warning_screen.dart';
 import 'package:betstop_kenya/services/sms_service.dart';
 import 'package:betstop_kenya/services/app_detection_service.dart';
 import 'package:betstop_kenya/services/blocklist_service.dart';
 import 'package:betstop_kenya/services/vpn_monitor_service.dart';
+import 'package:betstop_kenya/services/device_admin_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,10 +46,41 @@ void main() async {
   runApp(BetStopApp(isLoggedIn: token != null));
 }
 
-class BetStopApp extends StatelessWidget {
+class BetStopApp extends StatefulWidget {
   final bool isLoggedIn;
   
   const BetStopApp({super.key, required this.isLoggedIn});
+
+  @override
+  State<BetStopApp> createState() => _BetStopAppState();
+}
+
+class _BetStopAppState extends State<BetStopApp> {
+  final _deviceAdminService = DeviceAdminService();
+  bool _showDeactivationWarning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    if (widget.isLoggedIn) {
+      // Start deactivation listener
+      _deviceAdminService.startDeactivationListener();
+      
+      // Set callback to show warning screen
+      _deviceAdminService.onDeactivationRequested = () {
+        if (mounted) {
+          setState(() => _showDeactivationWarning = true);
+        }
+      };
+    }
+  }
+
+  @override
+  void dispose() {
+    _deviceAdminService.stopDeactivationListener();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +97,9 @@ class BetStopApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0D0D0D),
         useMaterial3: true,
       ),
-      home: isLoggedIn ? const DashboardScreen() : const OnboardingScreen(),
+      home: _showDeactivationWarning
+          ? const DeactivationWarningScreen()
+          : (widget.isLoggedIn ? const DashboardScreen() : const OnboardingScreen()),
     );
   }
 }

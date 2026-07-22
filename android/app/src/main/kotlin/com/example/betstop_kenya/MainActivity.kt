@@ -16,6 +16,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val DNS_BLOCK_CHANNEL = "com.example.betstop_kenya/dns_block"
     private val VPN_MONITOR_CHANNEL = "com.example.betstop_kenya/vpn_monitor"
+    private val DEVICE_ADMIN_CHANNEL = "com.example.betstop_kenya/device_admin"
     private val TAG = "MainActivity"
     
     private var vpnRevokeReceiver: BroadcastReceiver? = null
@@ -23,6 +24,7 @@ class MainActivity : FlutterActivity() {
     private var timeoutHandler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
     private val VPN_START_TIMEOUT_MS = 10000L
+    private var deviceAdminHandler: com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -109,10 +111,18 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        
+        // Device Admin channel
+        deviceAdminHandler = com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler(this, this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_ADMIN_CHANNEL).setMethodCallHandler { call, result ->
+            deviceAdminHandler?.onMethodCall(call, result)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        
+        // Handle VPN permission result
         if (requestCode == 0) {
             if (resultCode == RESULT_OK) {
                 // VPN permission granted, start VPN and wait for service to start
@@ -126,6 +136,11 @@ class MainActivity : FlutterActivity() {
                 ))
                 vpnPermissionResult = null
             }
+        }
+        
+        // Handle device admin permission result
+        if (com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler.handleActivityResult(requestCode, resultCode)) {
+            // Handled by device admin handler
         }
     }
 
