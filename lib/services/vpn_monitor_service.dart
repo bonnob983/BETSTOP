@@ -27,9 +27,9 @@ class VpnMonitorService {
     try {
       await _channel.invokeMethod('startMonitoring');
       
-      // Start periodic check for VPN revoke flag
+      // Start periodic check for VPN revoke flag (10s interval for battery optimization)
       _checkTimer?.cancel();
-      _checkTimer = Timer.periodic(const Duration(seconds: 2), (_) => _checkVpnRevokeFlag());
+      _checkTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkVpnRevokeFlag());
       
       debugPrint('VPN monitoring started');
     } catch (e) {

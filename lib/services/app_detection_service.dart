@@ -41,8 +41,8 @@ class AppDetectionService {
   BlocklistService? _blocklistService;
   List<String> _blockedApps = [];
   
-  // Poll every 4 seconds (within 3-5 second requirement)
-  static const Duration _pollInterval = Duration(seconds: 4);
+  // Poll every 15 seconds (battery optimization - acceptable tradeoff for usage tracking)
+  static const Duration _pollInterval = Duration(seconds: 15);
 
   Future<void> initialize() async {
     // Request PACKAGE_USAGE_STATS permission
