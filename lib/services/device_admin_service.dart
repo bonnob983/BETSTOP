@@ -19,10 +19,10 @@ class DeviceAdminService {
   
   final _apiService = ApiService();
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
-  StreamSubscription? _deactivationSubscription;
   
   Function()? onDeactivationRequested;
   bool _initialized = false;
+  bool _isListening = false;
   
   /// Check if device admin is currently active
   Future<bool> isAdminActive() async {
@@ -59,20 +59,18 @@ class DeviceAdminService {
   
   /// Start listening for deactivation requests from native Android
   void startDeactivationListener() {
-    _deactivationSubscription?.cancel();
-    _deactivationSubscription = _channel
-        .receiveBroadcastStream()
-        .listen((event) {
-      if (event == _deactivationAction) {
-        _handleDeactivationRequest();
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeactivationRequested') {
+        await _handleDeactivationRequest();
       }
     });
+    _isListening = true;
   }
   
   /// Stop listening for deactivation requests
   void stopDeactivationListener() {
-    _deactivationSubscription?.cancel();
-    _deactivationSubscription = null;
+    _channel.setMethodCallHandler(null);
+    _isListening = false;
   }
   
   /// Handle deactivation request from Android

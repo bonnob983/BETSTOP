@@ -109,4 +109,46 @@ class ApiService {
     final now = DateTime.now();
     return now.difference(lastSyncDate).inHours >= 24;
   }
+
+  Future<Map<String, dynamic>> post(
+    String path,
+    Map<String, dynamic> body, {
+    String? token,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('POST request failed: ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> get(
+    String path, {
+    String? token,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('GET request failed: ${response.body}');
+    }
+  }
+
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
 }

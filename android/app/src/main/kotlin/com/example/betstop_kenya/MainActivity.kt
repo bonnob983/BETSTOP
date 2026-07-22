@@ -20,11 +20,13 @@ class MainActivity : FlutterActivity() {
     private val TAG = "MainActivity"
     
     private var vpnRevokeReceiver: BroadcastReceiver? = null
+    private var deactivationReceiver: BroadcastReceiver? = null
     private var vpnPermissionResult: MethodChannel.Result? = null
     private var timeoutHandler = Handler(Looper.getMainLooper())
     private var timeoutRunnable: Runnable? = null
     private val VPN_START_TIMEOUT_MS = 10000L
     private var deviceAdminHandler: com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler? = null
+    private var deviceAdminChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -114,9 +116,13 @@ class MainActivity : FlutterActivity() {
         
         // Device Admin channel
         deviceAdminHandler = com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler(this, this)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_ADMIN_CHANNEL).setMethodCallHandler { call, result ->
+        deviceAdminChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_ADMIN_CHANNEL)
+        deviceAdminChannel?.setMethodCallHandler { call, result ->
             deviceAdminHandler?.onMethodCall(call, result)
         }
+        
+        // Register deactivation broadcast receiver
+        registerDeactivationReceiver()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -139,8 +145,10 @@ class MainActivity : FlutterActivity() {
         }
         
         // Handle device admin permission result
-        if (com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler.handleActivityResult(requestCode, resultCode)) {
-            // Handled by device admin handler
+        deviceAdminHandler?.let {
+            if (com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler.handleActivityResult(requestCode, resultCode)) {
+                // Handled by device admin handler
+            }
         }
     }
 
@@ -261,8 +269,38 @@ class MainActivity : FlutterActivity() {
         }
     }
     
+    private fun registerDeactivationReceiver() {
+        if (deactivationReceiver != null) {
+            Log.w(TAG, "Deactivation receiver already registered")
+            return
+        }
+        
+        deactivationReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == com.example.betstop_kenya.deviceadmin.BetStopDeviceAdminReceiver.ACTION_DEACTIVATION_REQUESTED) {
+                    Log.i(TAG, "Deactivation request broadcast received")
+                    // Notify Flutter via method channel
+                    deviceAdminChannel?.invokeMethod("onDeactivationRequested", null)
+                }
+            }
+        }
+        
+        val filter = IntentFilter(com.example.betstop_kenya.deviceadmin.BetStopDeviceAdminReceiver.ACTION_DEACTIVATION_REQUESTED)
+        registerReceiver(deactivationReceiver, filter)
+        Log.i(TAG, "Deactivation receiver registered")
+    }
+    
+    private fun unregisterDeactivationReceiver() {
+        deactivationReceiver?.let {
+            unregisterReceiver(it)
+            deactivationReceiver = null
+            Log.i(TAG, "Deactivation receiver unregistered")
+        }
+    }
+    
     override fun onDestroy() {
         stopVpnMonitoring()
+        unregisterDeactivationReceiver()
         com.example.betstop_kenya.dnsblock.DnsVpnService.onVpnStartedListener = null
         com.example.betstop_kenya.dnsblock.DnsVpnService.onSustainedFailureListener = null
         timeoutRunnable?.let { timeoutHandler.removeCallbacks(it) }

@@ -25,6 +25,16 @@ class DeviceAdminChannelHandler(
         private const val REQUEST_CODE_ENABLE_ADMIN = 1001
         
         var pendingResult: MethodChannel.Result? = null
+        
+        fun handleActivityResult(requestCode: Int, resultCode: Int): Boolean {
+            if (requestCode == REQUEST_CODE_ENABLE_ADMIN) {
+                val success = resultCode == Activity.RESULT_OK
+                pendingResult?.success(success)
+                pendingResult = null
+                return true
+            }
+            return false
+        }
     }
     
     private val devicePolicyManager: DevicePolicyManager by lazy {
@@ -107,18 +117,6 @@ class DeviceAdminChannelHandler(
         } catch (e: Exception) {
             Log.e(TAG, "Error re-registering device admin", e)
             result.success(false)
-        }
-    }
-    
-    companion object {
-        fun handleActivityResult(requestCode: Int, resultCode: Int): Boolean {
-            if (requestCode == REQUEST_CODE_ENABLE_ADMIN) {
-                val success = resultCode == Activity.RESULT_OK
-                pendingResult?.success(success)
-                pendingResult = null
-                return true
-            }
-            return false
         }
     }
 }
