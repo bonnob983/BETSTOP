@@ -263,7 +263,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             if (trimmed.length < 2) {
               return 'Name must be at least 2 characters';
             }
-            if (!RegExp(r'^[a-zA-Z\s\'\-]+$').hasMatch(trimmed)) {
+            if (!RegExp(r"^[a-zA-Z\s'\-]+$").hasMatch(trimmed)) {
               return 'Name can only contain letters, spaces, apostrophes, and hyphens';
             }
             return null;
@@ -291,7 +291,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             if (trimmed.length < 2) {
               return 'Name must be at least 2 characters';
             }
-            if (!RegExp(r'^[a-zA-Z\s\'\-]+$').hasMatch(trimmed)) {
+            if (!RegExp(r"^[a-zA-Z\s'\-]+$").hasMatch(trimmed)) {
               return 'Name can only contain letters, spaces, apostrophes, and hyphens';
             }
             return null;
