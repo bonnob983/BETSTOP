@@ -255,6 +255,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextFormField(
           controller: _nameController,
           decoration: const InputDecoration(labelText: 'Name'),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Name is required';
+            }
+            final trimmed = value.trim();
+            if (trimmed.length < 2) {
+              return 'Name must be at least 2 characters';
+            }
+            if (!RegExp(r'^[a-zA-Z\s\'\-]+$').hasMatch(trimmed)) {
+              return 'Name can only contain letters, spaces, apostrophes, and hyphens';
+            }
+            return null;
+          },
         ),
         TextFormField(
           controller: _phoneController,
@@ -270,6 +283,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextFormField(
           controller: _guardianNameController,
           decoration: const InputDecoration(labelText: 'Guardian Name'),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Guardian name is required';
+            }
+            final trimmed = value.trim();
+            if (trimmed.length < 2) {
+              return 'Name must be at least 2 characters';
+            }
+            if (!RegExp(r'^[a-zA-Z\s\'\-]+$').hasMatch(trimmed)) {
+              return 'Name can only contain letters, spaces, apostrophes, and hyphens';
+            }
+            return null;
+          },
         ),
         TextFormField(
           controller: _guardianPhoneController,
@@ -285,10 +311,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextFormField(
           controller: _pinController,
           decoration: const InputDecoration(labelText: 'PIN'),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'PIN is required';
+            }
+            if (!RegExp(r'^[0-9]{4}$').hasMatch(value)) {
+              return 'PIN must be exactly 4 digits';
+            }
+            return null;
+          },
         ),
         TextFormField(
           controller: _confirmPinController,
           decoration: const InputDecoration(labelText: 'Confirm PIN'),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please confirm your PIN';
+            }
+            if (value != _pinController.text) {
+              return 'PINs do not match';
+            }
+            if (!RegExp(r'^[0-9]{4}$').hasMatch(value)) {
+              return 'PIN must be exactly 4 digits';
+            }
+            return null;
+          },
         ),
       ],
     );

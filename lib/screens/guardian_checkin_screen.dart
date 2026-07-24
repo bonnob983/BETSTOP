@@ -17,6 +17,7 @@ class GuardianCheckinScreen extends StatefulWidget {
 }
 
 class _GuardianCheckinScreenState extends State<GuardianCheckinScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _pinController = TextEditingController();
 
   @override
@@ -32,10 +33,12 @@ class _GuardianCheckinScreenState extends State<GuardianCheckinScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Icon
               const Icon(
                 Icons.shield,
@@ -71,7 +74,7 @@ class _GuardianCheckinScreenState extends State<GuardianCheckinScreen> {
               const SizedBox(height: 32),
               
               // PIN input field
-              TextField(
+              TextFormField(
                 controller: _pinController,
                 keyboardType: TextInputType.number,
                 maxLength: 4,
@@ -91,7 +94,17 @@ class _GuardianCheckinScreenState extends State<GuardianCheckinScreen> {
                     borderSide: BorderSide.none,
                   ),
                   counterText: '',
+                  errorStyle: const TextStyle(color: Colors.white),
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'PIN is required';
+                  }
+                  if (!RegExp(r'^[0-9]{4}$').hasMatch(value)) {
+                    return 'PIN must be exactly 4 digits';
+                  }
+                  return null;
+                },
               ),
               
               const SizedBox(height: 32),
@@ -140,6 +153,7 @@ class _GuardianCheckinScreenState extends State<GuardianCheckinScreen> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

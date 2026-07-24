@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -257,7 +258,7 @@ class MainActivity : FlutterActivity() {
         }
         
         val filter = IntentFilter("com.example.betstop_kenya.VPN_REVOKED")
-        registerReceiver(vpnRevokeReceiver, filter)
+        ContextCompat.registerReceiver(this, vpnRevokeReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         Log.i(TAG, "VPN revoke monitoring started")
     }
     
@@ -286,7 +287,7 @@ class MainActivity : FlutterActivity() {
         }
         
         val filter = IntentFilter(com.example.betstop_kenya.deviceadmin.BetStopDeviceAdminReceiver.ACTION_DEACTIVATION_REQUESTED)
-        registerReceiver(deactivationReceiver, filter)
+        ContextCompat.registerReceiver(this, deactivationReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         Log.i(TAG, "Deactivation receiver registered")
     }
     

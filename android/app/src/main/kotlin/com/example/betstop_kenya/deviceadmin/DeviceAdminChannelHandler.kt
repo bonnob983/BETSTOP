@@ -56,9 +56,6 @@ class DeviceAdminChannelHandler(
             "removeAdmin" -> {
                 removeAdmin(result)
             }
-            "reRegisterAdmin" -> {
-                reRegisterAdmin(result)
-            }
             else -> {
                 result.notImplemented()
             }
@@ -96,26 +93,6 @@ class DeviceAdminChannelHandler(
             result.success(success)
         } catch (e: Exception) {
             Log.e(TAG, "Error removing device admin", e)
-            result.success(false)
-        }
-    }
-    
-    private fun reRegisterAdmin(result: MethodChannel.Result) {
-        try {
-            if (devicePolicyManager.isAdminActive(componentName)) {
-                result.success(true)
-                return
-            }
-            
-            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, 
-                "Re-enabling BetStop protection after deactivation request.")
-            
-            activity?.startActivityForResult(intent, REQUEST_CODE_ENABLE_ADMIN)
-            result.success(true)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error re-registering device admin", e)
             result.success(false)
         }
     }

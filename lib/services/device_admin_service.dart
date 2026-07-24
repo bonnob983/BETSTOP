@@ -90,23 +90,10 @@ class DeviceAdminService {
       // Schedule 24-hour notification
       await _scheduleFollowUpNotification();
       
-      // Re-register device admin immediately
-      await _reRegisterAdmin();
-      
       // Notify UI to show warning screen
       onDeactivationRequested?.call();
     } catch (e) {
       debugPrint('Error handling deactivation request: $e');
-    }
-  }
-  
-  /// Re-register device admin after deactivation attempt
-  Future<void> _reRegisterAdmin() async {
-    try {
-      await _channel.invokeMethod('reRegisterAdmin');
-      debugPrint('Device admin re-registered');
-    } catch (e) {
-      debugPrint('Error re-registering device admin: $e');
     }
   }
   

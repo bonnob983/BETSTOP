@@ -40,12 +40,12 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
       final result = await _deviceAdminService.confirmDeactivation();
       
       if (result['success'] == true) {
-        // Remove device admin
-        await _deviceAdminService.removeAdmin();
-        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('BetStop protection removed. You can now uninstall the app.')),
+            const SnackBar(
+              content: Text('Deactivation confirmed. Go to Settings > Security > Device Admin Apps to remove BetStop.'),
+              duration: Duration(seconds: 5),
+            ),
           );
           Navigator.pop(context);
         }
