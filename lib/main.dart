@@ -168,7 +168,7 @@ class _BetStopAppState extends State<BetStopApp> {
         },
         home: _showDeactivationWarning
             ? const DeactivationWarningScreen()
-            : (widget.isLoggedIn ? const DashboardScreen() : const OnboardingScreen()),
+            : (widget.isLoggedIn ? const DashboardScreen() : const SignupScreen()),
       ),
     );
   }
