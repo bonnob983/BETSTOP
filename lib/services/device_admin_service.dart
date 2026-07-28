@@ -22,7 +22,6 @@ class DeviceAdminService {
   
   Function()? onDeactivationRequested;
   bool _initialized = false;
-  bool _isListening = false;
   
   /// Check if device admin is currently active
   Future<bool> isAdminActive() async {

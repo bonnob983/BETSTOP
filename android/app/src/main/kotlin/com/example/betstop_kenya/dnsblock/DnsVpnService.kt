@@ -15,31 +15,35 @@ import java.io.FileOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * DNS-filtering VPN Service using split-default routing with packet inspection.
+ * DNS-only VPN Service for blocking gambling domains.
  * 
- * ROUTING ARCHITECTURE:
- * - Split-default routing: addRoute("0.0.0.0", 1) AND addRoute("128.0.0.0", 1)
- * - This covers full 0.0.0.0/0 range while avoiding device-specific quirks
- * - ALL traffic enters the tunnel, but we selectively process only DNS
- * 
- * PACKET PROCESSING LOOP:
- * - Inspect EVERY packet entering the tunnel
- * - If UDP packet with destination port 53 (DNS) → apply filtering logic
- * - EVERY OTHER PACKET → protect() and forward unchanged to original destination
- * - Non-DNS traffic (YouTube, Chrome, WhatsApp) passes through completely untouched
+ * ROUTING SCOPE CRITICAL:
+ * - This VPN routes ONLY DNS traffic through the tunnel
+ * - Single /32 host route for the virtual DNS server address (10.111.222.2)
+ * - NO 0.0.0.0/0 catch-all route - all other traffic bypasses this VPN entirely
+ * - This is the GOOD approach (like NextDNS/1.1.1.1), not the BAD approach (like Gamban/BetBlocker)
  * 
  * Architecture:
  * - Private point-to-point tun pair: 10.111.222.1 (local) <-> 10.111.222.2 (remote)
- * - Intercept DNS queries on port 53, check blocklist, forward to upstream resolver
+ * - Advertise 10.111.222.2 as DNS server via addDnsServer()
+ * - addRoute("10.111.222.2", 32) - the ONE AND ONLY route
+ * - Intercept DNS queries on port 53, check blocklist, forward to Cloudflare 1.1.1.1
  * - Return NXDOMAIN for blocked domains, forward unmodified responses for allowed domains
- * - Fail-open on errors - never block internet access
+ * - Fail-open on errors (1000ms timeout) - never block internet access
+ * 
+ * KNOWN LIMITATION - DNS-over-TLS (Private DNS):
+ * - If device has Private DNS set to a specific hostname (Settings → Network → Private DNS),
+ *   DNS traffic bypasses this VPN on port 853 (DoT) and filtering is ineffective.
+ * - Flutter layer should detect this via getPrivateDnsMode() and warn user to set to "Off" or "Automatic".
+ * - This VPN does NOT attempt to intercept port 853 - that's out of scope.
  * 
  * Limitations:
- * - Only handles plain DNS (UDP port 53). DoH (TCP port 443) and DoT (TCP port 853) bypass filtering.
- * - This is expected and acceptable - same as every consumer DNS-blocking app.
+ * - Only handles plain DNS (port 53). DoH (port 443) and DoT (port 853) bypass filtering.
+ * - This is acceptable for this phase and matches NextDNS consumer app limitations.
  */
 class DnsVpnService : VpnService() {
     
@@ -57,8 +61,7 @@ class DnsVpnService : VpnService() {
         private const val UPSTREAM_DNS_PORT = 53
         
         // Timeout for DNS lookups (fail-open if exceeded)
-        // Increased from 1000ms to 5000ms to reduce false failures
-        private const val DNS_TIMEOUT_MS = 5000L
+        private const val DNS_TIMEOUT_MS = 1000L
         
         // VPN interface MTU
         private const val MTU = 1500
@@ -128,11 +131,11 @@ class DnsVpnService : VpnService() {
         // Start foreground service
         startForegroundService()
         
-        // Configure VPN interface - only intercept DNS, not all traffic
+        // Configure VPN interface
         val builder = Builder()
             .setSession("BetStop DNS Block")
-            .addAddress(LOCAL_TUN_IP, 30)
-            .addRoute(REMOTE_TUN_IP, 32) // Route for virtual DNS server
+            .addAddress(LOCAL_TUN_IP, 32) // Use /32 for local address to avoid implicit routes
+            .addRoute(REMOTE_TUN_IP, 32) // CRITICAL: Single /32 host route ONLY
             .addDnsServer(REMOTE_TUN_IP) // Advertise virtual DNS as system DNS
             .setMtu(MTU)
         
@@ -159,12 +162,12 @@ class DnsVpnService : VpnService() {
         dnsServerFailures.clear()
         dnsServerDeprioritizedUntil.clear()
         
-        Log.i(TAG, "VPN started with split-default routing: routes($REMOTE_TUN_IP/32, 0.0.0.0/1, 128.0.0.0/1)")
+        Log.i(TAG, "VPN started with DNS-only routing scope: route($REMOTE_TUN_IP/32)")
         onVpnStartedListener?.invoke()
         Log.i(TAG, "VPN started, listener invoked")
         
-        // Start packet processing thread
-        Thread { processPackets() }.start()
+        // Start DNS packet processing thread
+        Thread { processDnsPackets() }.start()
     }
     
     private fun stopVpn() {
@@ -174,40 +177,6 @@ class DnsVpnService : VpnService() {
         vpnInterface = null
         stopForeground(true)
         stopSelf()
-        
-        // Force DNS restoration by triggering network refresh
-        // This prevents orphaned DNS settings pointing to dead virtual DNS server
-        try {
-            val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
-            if (connectivityManager != null) {
-                // Request network callback to force DNS refresh
-                val networkRequest = android.net.NetworkRequest.Builder()
-                    .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .build()
-                
-                val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
-                    override fun onAvailable(network: android.net.Network) {
-                        connectivityManager.unregisterNetworkCallback(this)
-                        Log.i(TAG, "Network refreshed, DNS should be restored")
-                    }
-                }
-                
-                connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-                // Unregister after short delay to trigger refresh
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    try {
-                        connectivityManager.unregisterNetworkCallback(networkCallback)
-                    } catch (e: Exception) {
-                        // Callback may already be unregistered
-                    }
-                }, 1000)
-                
-                Log.i(TAG, "Triggered network refresh for DNS restoration")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error triggering DNS restoration: ${e.message}")
-        }
-        
         Log.i(TAG, "VPN stopped")
     }
     
@@ -231,7 +200,7 @@ class DnsVpnService : VpnService() {
         startForeground(NOTIFICATION_ID, notification)
     }
     
-    private fun processPackets() {
+    private fun processDnsPackets() {
         val vpnInput = FileInputStream(vpnInterface!!.fileDescriptor)
         val vpnOutput = FileOutputStream(vpnInterface!!.fileDescriptor)
         
@@ -244,7 +213,6 @@ class DnsVpnService : VpnService() {
                 
                 val packet = buffer.copyOf(bytesRead)
                 
-                // Check if this is a DNS packet (UDP, destination port 53)
                 if (isDnsPacket(packet)) {
                     // Extract domain and apply filtering
                     val domainName = dnsPacketParser?.extractDomainName(packet)
@@ -271,9 +239,9 @@ class DnsVpnService : VpnService() {
                         forwardToUpstreamDns(packet, vpnOutput)
                     }
                 } else {
-                    // Non-DNS packet: protect() and forward unchanged
-                    // This allows all non-DNS traffic to pass through
-                    forwardNonDnsPacket(packet, vpnOutput)
+                    // Non-DNS packet: this shouldn't happen with correct routing
+                    // Log and drop - routing should prevent non-DNS from reaching tun interface
+                    Log.w(TAG, "Unexpected non-DNS packet in VPN tunnel - dropping")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing packet: ${e.message}")
@@ -440,8 +408,9 @@ class DnsVpnService : VpnService() {
                     socket.soTimeout = DNS_TIMEOUT_MS.toInt()
                     socket.receive(responsePacket)
                     
-                    // Forward response back to VPN
-                    vpnOutput.write(responsePacket.data, 0, responsePacket.length)
+                    // Build complete IPv4 packet with proper headers from upstream response
+                    val fullPacket = PacketBuilder.buildDnsResponsePacket(queryData, responsePacket.data.copyOf(responsePacket.length))
+                    vpnOutput.write(fullPacket)
                     
                     // Reset failure counter for this server on success
                     dnsServerFailures[dnsServer] = 0
@@ -537,5 +506,341 @@ class DnsVpnService : VpnService() {
         sendBroadcast(intent)
         
         stopVpn()
+    }
+    
+    /**
+     * Get current Private DNS mode on the device.
+     * 
+     * Returns:
+     * - "off": Private DNS is disabled (VPN filtering works)
+     * - "automatic": Private DNS is opportunistic (VPN filtering works)
+     * - "strict_hostname": Private DNS is set to specific hostname (VPN filtering BYPASSED on port 853)
+     * - "unknown": Unable to determine
+     * 
+     * Flutter layer should call this and warn user if result is "strict_hostname".
+     */
+    fun getPrivateDnsMode(): String {
+        return try {
+            val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
+            if (connectivityManager == null) {
+                return "unknown"
+            }
+            
+            val linkProperties = connectivityManager.getLinkProperties(connectivityManager.activeNetwork)
+            if (linkProperties == null) {
+                return "unknown"
+            }
+            
+            val privateDnsServerName = linkProperties.privateDnsServerName
+            if (privateDnsServerName != null && privateDnsServerName.isNotEmpty()) {
+                // Strict mode with specific hostname - DoT bypasses our VPN
+                return "strict_hostname"
+            }
+            
+            // If no server name, check if Private DNS is using opportunistic mode
+            // This is a simplified check - on older APIs we can't distinguish off vs automatic
+            // We'll assume "off" if no server name is set
+            "off"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting Private DNS mode: ${e.message}")
+            "unknown"
+        }
+    }
+}
+
+/**
+ * PacketBuilder - Pure functions for IPv4/UDP packet construction.
+ * 
+ * All functions are unit-testable without requiring a real device or VPN interface.
+ * This ensures DNS responses are properly formatted with correct headers and checksums.
+ */
+private object PacketBuilder {
+    private const val IP_HEADER_VERSION_IHL = 0x45 // Version 4, IHL 5 (20 bytes)
+    private const val IP_PROTOCOL_UDP = 17
+    private const val UDP_HEADER_SIZE = 8
+    private const val IP_HEADER_SIZE = 20
+    
+    /**
+     * Build a complete IPv4 packet containing a DNS response.
+     * 
+     * @param originalQueryPacket The original DNS query packet (IP + UDP + DNS)
+     * @param dnsResponsePayload The DNS response payload (DNS layer only)
+     * @return Complete IPv4 packet (IP header + UDP header + DNS payload)
+     */
+    fun buildDnsResponsePacket(originalQueryPacket: ByteArray, dnsResponsePayload: ByteArray): ByteArray {
+        // Parse original query to get addressing info
+        val queryInfo = parseIpUdpHeaders(originalQueryPacket)
+        
+        // Build IP header
+        val ipHeader = buildIpHeader(
+            sourceIp = queryInfo.destIp,
+            destIp = queryInfo.sourceIp,
+            totalLength = IP_HEADER_SIZE + UDP_HEADER_SIZE + dnsResponsePayload.size
+        )
+        
+        // Build UDP header
+        val udpHeader = buildUdpHeader(
+            sourcePort = 53,
+            destPort = queryInfo.sourcePort,
+            payload = dnsResponsePayload,
+            sourceIp = queryInfo.destIp,
+            destIp = queryInfo.sourceIp
+        )
+        
+        // Combine: IP header + UDP header + DNS payload
+        return ipHeader + udpHeader + dnsResponsePayload
+    }
+    
+    /**
+     * Parse IP and UDP headers from a packet.
+     * 
+     * @return IpUdpInfo containing source/dest IPs and ports
+     */
+    private fun parseIpUdpHeaders(packet: ByteArray): IpUdpInfo {
+        if (packet.size < IP_HEADER_SIZE + UDP_HEADER_SIZE) {
+            throw IllegalArgumentException("Packet too small for IP+UDP headers")
+        }
+        
+        val ihl = (packet[0].toInt() and 0x0F) * 4
+        if (packet.size < ihl + UDP_HEADER_SIZE) {
+            throw IllegalArgumentException("Packet too small for IP+UDP headers with IHL=$ihl")
+        }
+        
+        // Extract source and dest IPs from IP header (bytes 12-19)
+        val sourceIp = byteArrayOf(
+            packet[12], packet[13], packet[14], packet[15]
+        )
+        val destIp = byteArrayOf(
+            packet[16], packet[17], packet[18], packet[19]
+        )
+        
+        // Extract source and dest ports from UDP header (bytes ihl+0 to ihl+3)
+        val sourcePort = ((packet[ihl].toInt() and 0xFF) shl 8) or (packet[ihl + 1].toInt() and 0xFF)
+        val destPort = ((packet[ihl + 2].toInt() and 0xFF) shl 8) or (packet[ihl + 3].toInt() and 0xFF)
+        
+        return IpUdpInfo(sourceIp, destIp, sourcePort, destPort)
+    }
+    
+    /**
+     * Build an IPv4 header.
+     * 
+     * @param sourceIp Source IP address (4 bytes)
+     * @param destIp Destination IP address (4 bytes)
+     * @param totalLength Total packet length including IP header
+     * @return 20-byte IP header
+     */
+    private fun buildIpHeader(sourceIp: ByteArray, destIp: ByteArray, totalLength: Int): ByteArray {
+        val buffer = ByteBuffer.allocate(IP_HEADER_SIZE)
+        
+        // Version + IHL
+        buffer.put(IP_HEADER_VERSION_IHL.toByte())
+        
+        // DSCP + ECN (0)
+        buffer.put(0.toByte())
+        
+        // Total length
+        buffer.putShort(totalLength.toShort())
+        
+        // Identification (0)
+        buffer.putShort(0.toShort())
+        
+        // Flags + Fragment offset (0)
+        buffer.putShort(0.toShort())
+        
+        // TTL (64)
+        buffer.put(64.toByte())
+        
+        // Protocol (UDP = 17)
+        buffer.put(IP_PROTOCOL_UDP.toByte())
+        
+        // Header checksum (placeholder, will compute)
+        val checksumPos = buffer.position()
+        buffer.putShort(0.toShort())
+        
+        // Source IP
+        buffer.put(sourceIp)
+        
+        // Destination IP
+        buffer.put(destIp)
+        
+        // Compute and set checksum
+        val headerBytes = buffer.array()
+        val checksum = computeIpChecksum(headerBytes)
+        buffer.putShort(checksumPos, checksum)
+        
+        return headerBytes
+    }
+    
+    /**
+     * Build a UDP header.
+     * 
+     * @param sourcePort Source port
+     * @param destPort Destination port
+     * @param payload UDP payload
+     * @param sourceIp Source IP (for checksum pseudo-header)
+     * @param destIp Destination IP (for checksum pseudo-header)
+     * @return 8-byte UDP header
+     */
+    private fun buildUdpHeader(
+        sourcePort: Int,
+        destPort: Int,
+        payload: ByteArray,
+        sourceIp: ByteArray,
+        destIp: ByteArray
+    ): ByteArray {
+        val buffer = ByteBuffer.allocate(UDP_HEADER_SIZE)
+        
+        // Source port
+        buffer.putShort(sourcePort.toShort())
+        
+        // Destination port
+        buffer.putShort(destPort.toShort())
+        
+        // Length (header + payload)
+        buffer.putShort((UDP_HEADER_SIZE + payload.size).toShort())
+        
+        // Checksum placeholder (will compute)
+        val checksumPos = buffer.position()
+        buffer.putShort(0.toShort())
+        
+        // Compute UDP checksum from IPv4 pseudo-header
+        val headerBytes = buffer.array()
+        val checksum = computeUdpChecksum(
+            sourceIp = sourceIp,
+            destIp = destIp,
+            udpHeader = headerBytes,
+            payload = payload
+        )
+        buffer.putShort(checksumPos, checksum)
+        
+        return headerBytes
+    }
+    
+    /**
+     * Compute UDP checksum from IPv4 pseudo-header.
+     * 
+     * Pseudo-header format:
+     * - Source IP (4 bytes)
+     * - Destination IP (4 bytes)
+     * - Zero (1 byte)
+     * - Protocol (1 byte, UDP = 17)
+     * - UDP length (2 bytes)
+     * - UDP header (8 bytes)
+     * - UDP payload (variable)
+     * 
+     * @param sourceIp Source IP address
+     * @param destIp Destination IP address
+     * @param udpHeader UDP header bytes (checksum field must be 0)
+     * @param payload UDP payload
+     * @return Checksum value (0xFFFF if computed checksum is 0x0000)
+     */
+    private fun computeUdpChecksum(
+        sourceIp: ByteArray,
+        destIp: ByteArray,
+        udpHeader: ByteArray,
+        payload: ByteArray
+    ): Short {
+        var sum = 0
+        
+        // Add source IP
+        sum += ((sourceIp[0].toInt() and 0xFF) shl 8) or (sourceIp[1].toInt() and 0xFF)
+        sum += ((sourceIp[2].toInt() and 0xFF) shl 8) or (sourceIp[3].toInt() and 0xFF)
+        
+        // Add destination IP
+        sum += ((destIp[0].toInt() and 0xFF) shl 8) or (destIp[1].toInt() and 0xFF)
+        sum += ((destIp[2].toInt() and 0xFF) shl 8) or (destIp[3].toInt() and 0xFF)
+        
+        // Add zero + protocol
+        sum += IP_PROTOCOL_UDP
+        
+        // Add UDP length
+        val udpLength = UDP_HEADER_SIZE + payload.size
+        sum += udpLength
+        
+        // Add UDP header (8 bytes)
+        for (i in udpHeader.indices step 2) {
+            val word = ((udpHeader[i].toInt() and 0xFF) shl 8) or (udpHeader[i + 1].toInt() and 0xFF)
+            sum += word
+        }
+        
+        // Add payload (pad to even length if needed)
+        var i = 0
+        while (i < payload.size) {
+            val byte1 = payload[i].toInt() and 0xFF
+            val byte2 = if (i + 1 < payload.size) payload[i + 1].toInt() and 0xFF else 0
+            sum += (byte1 shl 8) or byte2
+            i += 2
+        }
+        
+        // Fold 32-bit sum to 16 bits
+        while (sum shr 16 != 0) {
+            sum = (sum and 0xFFFF) + (sum shr 16)
+        }
+        
+        // One's complement
+        var checksum = ((sum.inv()) and 0xFFFF).toShort()
+        
+        // If checksum is 0x0000, send 0xFFFF instead
+        if (checksum.toInt() == 0x0000) {
+            checksum = 0xFFFF.toShort()
+        }
+        
+        return checksum
+    }
+    
+    /**
+     * Compute IPv4 header checksum.
+     * 
+     * @param header IP header bytes (checksum field must be 0)
+     * @return Checksum value
+     */
+    private fun computeIpChecksum(header: ByteArray): Short {
+        var sum = 0
+        
+        // Sum all 16-bit words
+        for (i in header.indices step 2) {
+            val word = ((header[i].toInt() and 0xFF) shl 8) or (header[i + 1].toInt() and 0xFF)
+            sum += word
+        }
+        
+        // Fold 32-bit sum to 16 bits
+        while (sum shr 16 != 0) {
+            sum = (sum and 0xFFFF) + (sum shr 16)
+        }
+        
+        // One's complement
+        return ((sum.inv()) and 0xFFFF).toShort()
+    }
+    
+    /**
+     * Data class for IP/UDP header information.
+     */
+    private data class IpUdpInfo(
+        val sourceIp: ByteArray,
+        val destIp: ByteArray,
+        val sourcePort: Int,
+        val destPort: Int
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+            
+            other as IpUdpInfo
+            
+            if (!sourceIp.contentEquals(other.sourceIp)) return false
+            if (!destIp.contentEquals(other.destIp)) return false
+            if (sourcePort != other.sourcePort) return false
+            if (destPort != other.destPort) return false
+            
+            return true
+        }
+        
+        override fun hashCode(): Int {
+            var result = sourceIp.contentHashCode()
+            result = 31 * result + destIp.contentHashCode()
+            result = 31 * result + sourcePort
+            result = 31 * result + destPort
+            return result
+        }
     }
 }

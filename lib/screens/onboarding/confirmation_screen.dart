@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:betstop_kenya/models/signup_flow_state.dart';
+import 'package:betstop_kenya/models/auth_state.dart' as auth;
 import 'package:betstop_kenya/services/signup_service.dart';
+import 'package:betstop_kenya/screens/dashboard_screen.dart';
 
 class ConfirmationScreen extends StatefulWidget {
   const ConfirmationScreen({super.key});
@@ -62,12 +64,18 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
 
     try {
       final state = context.read<SignupFlowState>();
+      final authState = context.read<auth.AppAuthState>();
       final success = await SignupService().submitSignup(state);
 
       if (mounted) {
         if (success) {
           state.reset();
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          await authState.login();
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            (route) => false,
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to complete signup. Please try again.')),
