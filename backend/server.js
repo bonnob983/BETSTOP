@@ -166,6 +166,137 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// POST /api/signup/complete - New signup flow endpoint
+app.post('/api/signup/complete', async (req, res) => {
+  try {
+    const { 
+      phone, 
+      name, 
+      guardian_name, 
+      guardian_phone, 
+      guardian_pin, 
+      cooling_hours, 
+      letter_to_self, 
+      commitment_type,
+      email,
+      id_card_base64 
+    } = req.body;
+
+    // Validate required fields
+    if (!phone || !name || !guardian_name || !guardian_phone || !guardian_pin || !cooling_hours || !letter_to_self) {
+      return res.status(400).json({ error: 'All required fields must be provided' });
+    }
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .single();
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this phone number already exists' });
+    }
+
+    // Hash the guardian PIN
+    const pin_hash = await bcrypt.hash(guardian_pin, 10);
+
+    // Create user
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .insert({
+        phone,
+        name,
+        streak_days: 0,
+        total_saved_kes: 0
+      })
+      .select()
+      .single();
+
+    if (userError) throw userError;
+
+    // Create guardian
+    const { error: guardianError } = await supabase
+      .from('guardians')
+      .insert({
+        user_id: user.id,
+        name: guardian_name,
+        phone: guardian_phone,
+        pin_hash
+      });
+
+    if (guardianError) throw guardianError;
+
+    // Handle ID card upload for full exclusion
+    let id_card_url = null;
+    if (commitment_type === 'full_exclusion' && id_card_base64) {
+      try {
+        // Decode base64 and upload to Supabase Storage
+        const buffer = Buffer.from(id_card_base64, 'base64');
+        const fileName = `id_card_${user.id}_${Date.now()}.jpg`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('id_cards')
+          .upload(fileName, buffer, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('ID card upload error:', uploadError);
+          // Continue without ID card - non-fatal
+        } else {
+          // Get public URL
+          const { data: publicUrl } = supabase.storage
+            .from('id_cards')
+            .getPublicUrl(fileName);
+          id_card_url = publicUrl;
+        }
+      } catch (uploadErr) {
+        console.error('ID card processing error:', uploadErr);
+        // Continue without ID card - non-fatal
+      }
+    }
+
+    // Create commitment with calculated end time
+    const commitmentEnd = new Date(Date.now() + cooling_hours * 60 * 60 * 1000).toISOString();
+    
+    const { error: commitmentError } = await supabase
+      .from('commitments')
+      .insert({
+        user_id: user.id,
+        cooling_hours,
+        commitment_end: commitmentEnd,
+        letter_to_self,
+        is_active: true
+      });
+
+    if (commitmentError) throw commitmentError;
+
+    // Send SMS to guardian
+    const guardianMessage = `${name} has enrolled in BetStop Kenya and chosen you as their accountability guardian. You will be notified if they attempt to gamble.`;
+    await sendGuardianSMS(guardian_phone, guardianMessage);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { user_id: user.id, phone: user.phone },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(201).json({
+      user_id: user.id,
+      token,
+      user: { name: user.name, phone: user.phone },
+      commitment_type,
+      commitment_end: commitmentEnd
+    });
+  } catch (error) {
+    console.error('Signup complete error:', error);
+    res.status(500).json({ error: 'Signup failed', details: error.message });
+  }
+});
+
 // POST /api/detections/sms
 app.post('/api/detections/sms', authenticateToken, async (req, res) => {
   try {
