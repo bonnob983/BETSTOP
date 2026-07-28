@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
 import android.net.VpnService
 import android.os.Bundle
 import android.os.Handler
@@ -28,6 +30,12 @@ class MainActivity : FlutterActivity() {
     private val VPN_START_TIMEOUT_MS = 10000L
     private var deviceAdminHandler: com.example.betstop_kenya.deviceadmin.DeviceAdminChannelHandler? = null
     private var deviceAdminChannel: MethodChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Clean up orphaned VPN connections on app start
+        cleanupOrphanedVpn()
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -216,10 +224,10 @@ class MainActivity : FlutterActivity() {
         timeoutRunnable?.let { timeoutHandler.removeCallbacks(it) }
         timeoutRunnable = null
         if (success) {
-            getSharedPreferences("betstop_vpn", Context.MODE_PRIVATE)
-                .edit()
-                .putBoolean("vpn_setup_complete", true)
-                .apply()
+            // Use FlutterSecureStorage for consistency with permission_setup_screen.dart
+            // Note: FlutterSecureStorage is accessed via Flutter, not native SharedPreferences
+            // The Flutter side (permission_setup_screen.dart) already handles this via FlutterSecureStorage
+            // We no longer set this in native SharedPreferences to avoid storage inconsistency
         }
         vpnPermissionResult?.success(mapOf(
             "success" to success,
@@ -229,7 +237,19 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isVpnServiceRunning(): Boolean {
-        return com.example.betstop_kenya.dnsblock.DnsVpnService.isRunning
+        // Check actual system VPN status instead of static boolean
+        // This prevents UI showing "inactive" while VPN is still running
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val isSystemVpnActive = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_VPN)?.isConnected == true
+        
+        // Also check our service's internal state for consistency
+        val isOurServiceRunning = com.example.betstop_kenya.dnsblock.DnsVpnService.isRunning
+        
+        Log.d(TAG, "VPN status check: systemVpn=$isSystemVpnActive, ourService=$isOurServiceRunning")
+        
+        // Return true if either system VPN is active or our service thinks it's running
+        // This ensures we catch orphaned VPN connections
+        return isSystemVpnActive || isOurServiceRunning
     }
 
     private fun updateBlocklist(domains: List<String>) {
@@ -237,6 +257,26 @@ class MainActivity : FlutterActivity() {
         // For now, we'll store it in a singleton that the VPN service can access
         BlocklistHolder.domains = domains
         Log.i(TAG, "Blocklist updated with ${domains.size} domains")
+    }
+
+    private fun cleanupOrphanedVpn() {
+        // Check if VPN service is running but our app thinks it's not
+        val isVpnRunning = isVpnServiceRunning()
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val isSystemVpnActive = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_VPN)?.isConnected == true
+        
+        Log.i(TAG, "VPN cleanup check: isVpnServiceRunning=$isVpnRunning, isSystemVpnActive=$isSystemVpnActive")
+        
+        // If system VPN is active but our service thinks it's not, clean it up
+        if (isSystemVpnActive && !isVpnRunning) {
+            Log.w(TAG, "Orphaned system VPN detected - attempting to stop it")
+            try {
+                stopVpnService()
+                Log.i(TAG, "Orphaned VPN stopped successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop orphaned VPN: ${e.message}")
+            }
+        }
     }
     
     private fun startVpnMonitoring() {

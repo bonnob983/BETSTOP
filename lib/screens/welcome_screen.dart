@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/screens/onboarding_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -7,7 +8,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF0B1613),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -22,25 +23,25 @@ class WelcomeScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: const Color(0xFF12211D),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
                   Icons.psychology_outlined,
                   size: 64,
-                  color: Color(0xFF00C853),
+                  color: Color(0xFF2BC08E),
                 ),
               ),
               
               const SizedBox(height: 32),
               
               // Headline
-              const Text(
+              Text(
                 'Take back control',
-                style: TextStyle(
+                style: GoogleFonts.fraunces(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: const Color(0xFFEAF3EF),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -52,7 +53,7 @@ class WelcomeScreen extends StatelessWidget {
                 'Track your spending, set limits, and get support when you need it most.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: Color(0xFF8FA69D),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -70,11 +71,11 @@ class WelcomeScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C853),
-                  foregroundColor: Colors.black,
+                  backgroundColor: const Color(0xFF2BC08E),
+                  foregroundColor: const Color(0xFF0B1613),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: const Text(
@@ -97,7 +98,7 @@ class WelcomeScreen extends StatelessWidget {
                   'Already have an account? Log in',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: Color(0xFF8FA69D),
                   ),
                 ),
               ),

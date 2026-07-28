@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/services/api_service.dart';
 import 'package:betstop_kenya/services/device_admin_service.dart';
 import 'package:betstop_kenya/screens/dashboard_screen.dart';
@@ -102,6 +103,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextStep() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
     if (_currentStep < 3) {
       setState(() => _currentStep++);
     } else {
@@ -197,10 +202,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00C853),
+                    color: Color(0xFF2BC08E),
                   ),
                 ),
-                const Text('Take back control'),
+                Text(
+                  'Take back control',
+                  style: GoogleFonts.fraunces(
+                    color: const Color(0xFFA8E6CE),
+                  ),
+                ),
 
                 const SizedBox(height: 30),
 
@@ -272,6 +282,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextFormField(
           controller: _phoneController,
           decoration: const InputDecoration(labelText: 'Phone'),
+          keyboardType: TextInputType.phone,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Phone is required';
+            }
+            if (!RegExp(r'^[0-9]{10,15}$').hasMatch(value.trim())) {
+              return 'Phone must be 10-15 digits';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -300,6 +320,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextFormField(
           controller: _guardianPhoneController,
           decoration: const InputDecoration(labelText: 'Guardian Phone'),
+          keyboardType: TextInputType.phone,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Guardian phone is required';
+            }
+            if (!RegExp(r'^[0-9]{10,15}$').hasMatch(value.trim())) {
+              return 'Phone must be 10-15 digits';
+            }
+            return null;
+          },
         ),
       ],
     );
@@ -348,8 +378,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       children: [
         TextFormField(
           controller: _letterController,
-          decoration: const InputDecoration(labelText: 'Letter'),
+          decoration: const InputDecoration(labelText: 'Letter to Self'),
           maxLines: 5,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Letter is required';
+            }
+            if (value.trim().length < 10) {
+              return 'Letter must be at least 10 characters';
+            }
+            return null;
+          },
         ),
       ],
     );

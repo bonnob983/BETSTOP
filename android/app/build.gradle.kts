@@ -4,7 +4,7 @@ plugins {
 }
 android {
     namespace = "com.example.betstop_kenya"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

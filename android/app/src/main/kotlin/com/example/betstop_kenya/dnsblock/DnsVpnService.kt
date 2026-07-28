@@ -54,7 +54,8 @@ class DnsVpnService : VpnService() {
         private const val UPSTREAM_DNS_PORT = 53
         
         // Timeout for DNS lookups (fail-open if exceeded)
-        private const val DNS_TIMEOUT_MS = 1000L
+        // Increased from 1000ms to 5000ms to reduce false failures
+        private const val DNS_TIMEOUT_MS = 5000L
         
         // VPN interface MTU
         private const val MTU = 1500
@@ -128,7 +129,10 @@ class DnsVpnService : VpnService() {
         val builder = Builder()
             .setSession("BetStop DNS Block")
             .addAddress(LOCAL_TUN_IP, 30)
-            .addRoute(REMOTE_TUN_IP, 32) // CRITICAL: Single /32 host route ONLY
+            .addRoute(REMOTE_TUN_IP, 32) // Route for virtual DNS server
+            .addRoute("1.1.1.1", 32) // Route for Cloudflare DNS
+            .addRoute("1.0.0.1", 32) // Route for Cloudflare DNS backup
+            .addRoute("8.8.8.8", 32) // Route for Google DNS
             .addDnsServer(REMOTE_TUN_IP) // Advertise virtual DNS as system DNS
             .setMtu(MTU)
         
@@ -155,7 +159,7 @@ class DnsVpnService : VpnService() {
         dnsServerFailures.clear()
         dnsServerDeprioritizedUntil.clear()
         
-        Log.i(TAG, "VPN started with DNS-only routing scope: route($REMOTE_TUN_IP/32)")
+        Log.i(TAG, "VPN started with DNS-only routing scope: routes($REMOTE_TUN_IP/32, 1.1.1.1/32, 1.0.0.1/32, 8.8.8.8/32)")
         onVpnStartedListener?.invoke()
         Log.i(TAG, "VPN started, listener invoked")
         
@@ -170,6 +174,40 @@ class DnsVpnService : VpnService() {
         vpnInterface = null
         stopForeground(true)
         stopSelf()
+        
+        // Force DNS restoration by triggering network refresh
+        // This prevents orphaned DNS settings pointing to dead virtual DNS server
+        try {
+            val connectivityManager = getSystemService(android.net.ConnectivityManager::class.java)
+            if (connectivityManager != null) {
+                // Request network callback to force DNS refresh
+                val networkRequest = android.net.NetworkRequest.Builder()
+                    .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build()
+                
+                val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: android.net.Network) {
+                        connectivityManager.unregisterNetworkCallback(this)
+                        Log.i(TAG, "Network refreshed, DNS should be restored")
+                    }
+                }
+                
+                connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
+                // Unregister after short delay to trigger refresh
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    try {
+                        connectivityManager.unregisterNetworkCallback(networkCallback)
+                    } catch (e: Exception) {
+                        // Callback may already be unregistered
+                    }
+                }, 1000)
+                
+                Log.i(TAG, "Triggered network refresh for DNS restoration")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error triggering DNS restoration: ${e.message}")
+        }
+        
         Log.i(TAG, "VPN stopped")
     }
     

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/services/dns_blocking_service.dart';
 import 'package:betstop_kenya/services/blocklist_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -116,12 +117,12 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 40),
-              const Text(
+              Text(
                 'Setup Protection',
-                style: TextStyle(
+                style: GoogleFonts.fraunces(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF00C853),
+                  color: const Color(0xFF2BC08E),
                 ),
               ),
               const SizedBox(height: 16),
@@ -129,7 +130,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                 'BetStop needs VPN permission to block gambling websites.',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey,
+                  color: Color(0xFF8FA69D),
                 ),
               ),
               const SizedBox(height: 40),
@@ -142,7 +143,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
                   child: ElevatedButton(
                     onPressed: _requestVpnPermission,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00C853),
+                      backgroundColor: const Color(0xFF2BC08E),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
@@ -180,7 +181,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
         const Icon(
           Icons.security,
           size: 80,
-          color: Colors.grey,
+          color: Color(0xFF8FA69D),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -188,19 +189,20 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: Color(0xFFEAF3EF),
           ),
         ),
         const SizedBox(height: 16),
         const Text(
           'Tap the button below to grant VPN permission. This will enable BetStop to block gambling websites.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Color(0xFF8FA69D)),
         ),
         const SizedBox(height: 32),
         ElevatedButton(
           onPressed: _requestVpnPermission,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00C853),
+            backgroundColor: const Color(0xFF2BC08E),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
           ),
           child: const Text(
@@ -217,7 +219,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircularProgressIndicator(
-          color: Color(0xFF00C853),
+          color: Color(0xFF2BC08E),
         ),
         SizedBox(height: 24),
         Text(
@@ -239,7 +241,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircularProgressIndicator(
-          color: Color(0xFF00C853),
+          color: Color(0xFF2BC08E),
         ),
         SizedBox(height: 24),
         Text(
@@ -263,7 +265,7 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
         const Icon(
           Icons.check_circle,
           size: 80,
-          color: Color(0xFF00C853),
+          color: Color(0xFF2BC08E),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -271,23 +273,23 @@ class _PermissionSetupScreenState extends State<PermissionSetupScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF00C853),
+            color: Color(0xFF2BC08E),
           ),
         ),
         const SizedBox(height: 16),
         const Text(
           'Protection is now enabled',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Color(0xFF8FA69D)),
         ),
         const SizedBox(height: 32),
         const CircularProgressIndicator(
-          color: Color(0xFF00C853),
+          color: Color(0xFF2BC08E),
         ),
         const SizedBox(height: 16),
         const Text(
           'Proceeding to dashboard...',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Color(0xFF8FA69D)),
         ),
       ],
     );

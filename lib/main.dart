@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:betstop_kenya/screens/onboarding_screen.dart';
 import 'package:betstop_kenya/screens/dashboard_screen.dart';
 import 'package:betstop_kenya/screens/deactivation_warning_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/signup_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/exclusion_type_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/full_exclusion_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/partial_exclusion_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/confirmation_screen.dart';
+import 'package:betstop_kenya/screens/onboarding/home_screen.dart';
+import 'package:betstop_kenya/models/signup_flow_state.dart';
 import 'package:betstop_kenya/services/sms_service.dart';
 import 'package:betstop_kenya/services/app_detection_service.dart';
 import 'package:betstop_kenya/services/blocklist_service.dart';
@@ -84,22 +93,83 @@ class _BetStopAppState extends State<BetStopApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BetStop Kenya',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF00C853),
-          secondary: const Color(0xFF00C853),
-          background: const Color(0xFF0D0D0D),
-          surface: const Color(0xFF1A1A1A),
+    return ChangeNotifierProvider(
+      create: (_) => SignupFlowState(),
+      child: MaterialApp(
+        title: 'BetStop Kenya',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.dark(
+            primary: const Color(0xFF2BC08E),
+            secondary: const Color(0xFF2BC08E),
+            background: const Color(0xFF0B1613),
+            surface: const Color(0xFF12211D),
+          ),
+          scaffoldBackgroundColor: const Color(0xFF0B1613),
+          useMaterial3: true,
+          cardTheme: CardThemeData(
+            color: const Color(0xFF12211D),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          textTheme: TextTheme(
+            headlineLarge: GoogleFonts.fraunces(
+              color: const Color(0xFFEAF3EF),
+            ),
+            headlineMedium: GoogleFonts.fraunces(
+              color: const Color(0xFFEAF3EF),
+            ),
+            bodyLarge: const TextStyle(
+              color: Color(0xFFEAF3EF),
+            ),
+            bodyMedium: const TextStyle(
+              color: Color(0xFF8FA69D),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFF12211D),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            labelStyle: const TextStyle(
+              color: Color(0xFF8FA69D),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2BC08E),
+              foregroundColor: const Color(0xFF0B1613),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF2BC08E),
+              side: const BorderSide(color: Color(0xFF2BC08E)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0D0D0D),
-        useMaterial3: true,
+        routes: {
+          '/signup': (context) => const SignupScreen(),
+          '/exclusion_type': (context) => const ExclusionTypeScreen(),
+          '/full_exclusion': (context) => const FullExclusionScreen(),
+          '/partial_exclusion': (context) => const PartialExclusionScreen(),
+          '/confirmation': (context) => const ConfirmationScreen(),
+          '/home': (context) => const HomeScreen(),
+        },
+        home: _showDeactivationWarning
+            ? const DeactivationWarningScreen()
+            : (widget.isLoggedIn ? const DashboardScreen() : const OnboardingScreen()),
       ),
-      home: _showDeactivationWarning
-          ? const DeactivationWarningScreen()
-          : (widget.isLoggedIn ? const DashboardScreen() : const OnboardingScreen()),
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://betstop-production.up.railway.app';
+  static const String baseUrl = 'https://betstop-production-033f.up.railway.app';
 
   Future<Map<String, dynamic>> register({
     required String phone,

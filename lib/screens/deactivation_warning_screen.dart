@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/services/device_admin_service.dart';
 
 /// Full-screen warning shown when user attempts to deactivate device admin
@@ -73,6 +74,7 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
     final commitmentEndDate = _deactivationStatus?['commitment_end_date'];
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0B1613),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -91,6 +93,7 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFFEAF3EF),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -99,14 +102,20 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                 hasPendingRequest
                     ? 'You requested to deactivate BetStop ${hoursPassed.toStringAsFixed(1)} hours ago.'
                     : 'Your deactivation request has been logged.',
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF8FA69D),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               if (commitmentEndDate != null)
                 Text(
                   'Your commitment ends on: ${_formatDate(commitmentEndDate)}',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF8FA69D),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               const SizedBox(height: 32),
@@ -114,9 +123,9 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
+                    color: const Color(0xFF12211D),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF2BC08E)),
                   ),
                   child: Column(
                     children: [
@@ -125,18 +134,25 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
+                          color: Color(0xFFEAF3EF),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'You can fully remove BetStop in ${(24 - hoursPassed).toStringAsFixed(1)} hours if you still want to.',
-                        style: const TextStyle(fontSize: 14),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF8FA69D),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         'We\'ll notify you when the 24 hours are up.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8FA69D),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -147,9 +163,12 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                 ElevatedButton(
                   onPressed: _confirmDeactivation,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF2BC08E),
+                    foregroundColor: const Color(0xFF0B1613),
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text(
                     'Remove BetStop Protection',
@@ -160,9 +179,12 @@ class _DeactivationWarningScreenState extends State<DeactivationWarningScreen> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF2BC08E),
+                    foregroundColor: const Color(0xFF0B1613),
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text(
                     'Keep BetStop Active',

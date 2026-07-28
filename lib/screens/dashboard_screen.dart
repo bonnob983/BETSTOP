@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/services/api_service.dart';
 import 'package:betstop_kenya/services/dns_blocking_service.dart';
 import 'package:betstop_kenya/services/blocklist_service.dart';
@@ -118,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       appBar: AppBar(
         title: const Text('BetStop'),
-        backgroundColor: const Color(0xFF0D0D0D),
+        backgroundColor: const Color(0xFF0B1613),
       ),
 
       body: _isLoading
@@ -191,7 +192,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
 
-      color: const Color(0xFF1A1A1A),
+      color: const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
 
       child: Padding(
 
@@ -201,10 +206,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           'Day $streakDays clean',
 
-          style: const TextStyle(
+          style: TextStyle(
             fontSize:32,
             fontWeight:FontWeight.bold,
-            color:Color(0xFF00C853),
+            color:Color(0xFF2BC08E),
           ),
         ),
       ),
@@ -228,7 +233,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
 
-      color: const Color(0xFF1A1A1A),
+      color: const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
 
       child: Padding(
 
@@ -244,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Text(
               'Saved from betting',
               style: TextStyle(
-                color:Colors.grey,
+                color:Color(0xFF8FA69D),
               ),
             ),
 
@@ -254,10 +263,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               formatter.format(saved),
 
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize:24,
                 fontWeight:FontWeight.bold,
-                color:Color(0xFF00C853),
+                color:Color(0xFF2BC08E),
               ),
             ),
           ],
@@ -310,7 +319,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
 
-      color: const Color(0xFF1A1A1A),
+      color: const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
 
       child: Padding(
 
@@ -335,7 +348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               '${(progress*100).toStringAsFixed(0)}% of commitment period',
 
               style: const TextStyle(
-                color:Colors.grey,
+                color:Color(0xFF8FA69D),
               ),
             ),
           ],
@@ -354,7 +367,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
 
-      color: const Color(0xFF1A1A1A),
+      color: const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
 
       child: InkWell(
 
@@ -395,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   letter.toString(),
                   style: const TextStyle(
-                    color:Colors.grey,
+                    color:Color(0xFF8FA69D),
                   ),
                 ),
               ],
@@ -425,10 +442,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children:[
 
         const Text(
-          'Recent Detections',
+          'Recent Activity',
           style:TextStyle(
             fontSize:18,
             fontWeight:FontWeight.bold,
+            color:Color(0xFFEAF3EF),
           ),
         ),
 
@@ -437,16 +455,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           return Card(
 
-            color:const Color(0xFF1A1A1A),
-
+            color:const Color(0xFF12211D),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child:ListTile(
 
               title:Text(
-                d['site_name'] ?? 'Unknown',
+                'A site access attempt was blocked',
+                style: const TextStyle(
+                  color: Color(0xFFEAF3EF),
+                ),
               ),
 
               subtitle:Text(
                 d['source'] ?? '',
+                style: const TextStyle(
+                  color: Color(0xFF8FA69D),
+                ),
               ),
             ),
           );
@@ -466,9 +493,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if(count == 0){
 
-      return const Card(
+      return Card(
 
-        color:Color(0xFF1A1A1A),
+        color:Color(0xFF12211D),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
 
         child:Padding(
 
@@ -478,6 +509,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             '🔥 Clean week. Keep going.',
             style:TextStyle(
               fontWeight:FontWeight.bold,
+              color: Color(0xFF2BC08E),
             ),
           ),
         ),
@@ -494,21 +526,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
 
-      color:const Color(0xFF1A1A1A),
+      color:const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
 
       child:ListTile(
 
         leading:const Icon(
           Icons.shield,
-          color:Color(0xFF00C853),
+          color:Color(0xFF2BC08E),
         ),
 
         title:const Text(
           'Guardian Settings',
+          style: TextStyle(
+            color: Color(0xFFEAF3EF),
+          ),
         ),
 
         subtitle:const Text(
           'PIN protected monitoring',
+          style: TextStyle(
+            color: Color(0xFF8FA69D),
+          ),
         ),
       ),
     );
@@ -516,7 +558,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildVpnStatusCard() {
     return Card(
-      color: const Color(0xFF1A1A1A),
+      color: const Color(0xFF12211D),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: _isBlockingActive ? null : () {
           Navigator.pushReplacement(
@@ -527,17 +573,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListTile(
           leading: Icon(
             _isBlockingActive ? Icons.vpn_lock : Icons.warning,
-            color: _isBlockingActive ? const Color(0xFF00C853) : Colors.orange,
+            color: _isBlockingActive ? const Color(0xFF2BC08E) : Colors.orange,
           ),
           title: Text(
             _isBlockingActive ? 'Protection: Active' : 'Protection: Inactive — tap to fix',
             style: TextStyle(
-              color: _isBlockingActive ? const Color(0xFF00C853) : Colors.orange,
+              color: _isBlockingActive ? const Color(0xFF2BC08E) : Colors.orange,
               fontWeight: FontWeight.bold,
             ),
           ),
           subtitle: Text(
             _isBlockingActive ? 'VPN blocking is enabled' : 'VPN permission required',
+            style: const TextStyle(
+              color: Color(0xFF8FA69D),
+            ),
           ),
         ),
       ),

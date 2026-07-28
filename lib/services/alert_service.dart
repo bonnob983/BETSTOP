@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 /// Handles alert events logging and guardian notifications
 /// for VPN disable/switch events
 class AlertService {
-  static const String baseUrl = 'https://betstop-production.up.railway.app';
+  static const String baseUrl = 'https://betstop-production-033f.up.railway.app';
   
   /// Log VPN disable/switch event and notify guardian
   /// 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:betstop_kenya/services/api_service.dart';
 
 class LetterScreen extends StatelessWidget {
@@ -14,7 +15,7 @@ class LetterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF0B1613),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -29,7 +30,7 @@ class LetterScreen extends StatelessWidget {
                         const Icon(
                           Icons.block,
                           size: 64,
-                          color: Color(0xFF00C853),
+                          color: Color(0xFF2BC08E),
                         ),
                         const SizedBox(height: 24),
                         const Text(
@@ -37,7 +38,7 @@ class LetterScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF00C853),
+                            color: Color(0xFF2BC08E),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -45,16 +46,16 @@ class LetterScreen extends StatelessWidget {
                           'Payment to $siteName detected',
                           style: const TextStyle(
                             fontSize: 16,
-                            color: Colors.grey,
+                            color: Color(0xFF8FA69D),
                           ),
                         ),
                         const SizedBox(height: 40),
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1A),
+                            color: const Color(0xFF12211D),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF00C853), width: 2),
+                            border: Border.all(color: const Color(0xFF2BC08E), width: 2),
                           ),
                           child: Text(
                             letterToSelf,
@@ -62,7 +63,7 @@ class LetterScreen extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 20,
                               fontStyle: FontStyle.italic,
-                              color: Colors.white,
+                              color: Color(0xFFEAF3EF),
                               height: 1.5,
                             ),
                           ),
@@ -72,7 +73,7 @@ class LetterScreen extends StatelessWidget {
                           'Your guardian has been notified.',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey,
+                            color: Color(0xFF8FA69D),
                           ),
                         ),
                       ],
@@ -85,8 +86,8 @@ class LetterScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => _showHelpDialog(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00C853),
-                    foregroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF2BC08E),
+                    foregroundColor: const Color(0xFF0B1613),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -109,10 +110,10 @@ class LetterScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: const Color(0xFF12211D),
         title: const Text(
           'Get Help',
-          style: TextStyle(color: Color(0xFF00C853)),
+          style: TextStyle(color: Color(0xFF2BC08E)),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -125,12 +126,12 @@ class LetterScreen extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               '0800 723 253',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00C853)),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2BC08E)),
             ),
             SizedBox(height: 16),
             Text(
               'Free, confidential support available 24/7.',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Color(0xFF8FA69D)),
             ),
           ],
         ),

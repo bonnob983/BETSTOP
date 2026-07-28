@@ -20,7 +20,7 @@ class BlocklistManager(private val context: Context) {
     companion object {
         private const val TAG = "BlocklistManager"
         private const val BLOCKLIST_FILE = "dns_blocklist.json"
-        private const val SUPABASE_URL = "https://betstop-production.up.railway.app"
+        private const val SUPABASE_URL = "https://betstop-production-033f.up.railway.app"
         private const val BLOCKLIST_ENDPOINT = "/api/blocklist/domains"
     }
     
