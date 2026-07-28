@@ -60,8 +60,6 @@ class SignupService {
         'commitment_end': commitmentEnd.toIso8601String(),
         'letter_to_self': state.commitmentLetter,
         'is_active': true,
-        'email': state.email,
-        'id_card_url': idCardUrl,
       });
 
       if (commitmentResponse.error != null) throw commitmentResponse.error!;
