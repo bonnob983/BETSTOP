@@ -134,10 +134,10 @@ class DnsVpnService : VpnService() {
         // Configure VPN interface
         val builder = Builder()
             .setSession("BetStop DNS Block")
-            .addAddress(LOCAL_TUN_IP, 32) // Use /32 for local address to avoid implicit routes
-            .addRoute(REMOTE_TUN_IP, 32) // CRITICAL: Single /32 host route ONLY
+            .addAddress(LOCAL_TUN_IP, 30) // Use /30 for point-to-point
             .addDnsServer(REMOTE_TUN_IP) // Advertise virtual DNS as system DNS
             .setMtu(MTU)
+            .allowBypass() // Allow apps to bypass VPN
         
         // Establish VPN interface
         vpnInterface = builder.establish()
