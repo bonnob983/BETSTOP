@@ -63,13 +63,11 @@ class DeviceAdminService {
         await _handleDeactivationRequest();
       }
     });
-    _isListening = true;
   }
   
   /// Stop listening for deactivation requests
   void stopDeactivationListener() {
     _channel.setMethodCallHandler(null);
-    _isListening = false;
   }
   
   /// Handle deactivation request from Android
